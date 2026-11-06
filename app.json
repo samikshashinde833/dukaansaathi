@@ -1,0 +1,73 @@
+{
+  "name": "DukaanSaathi AI",
+  "description": "Street Vendor Digitalization Agent: shop profile, product catalogue and marketing content for Indian street vendors, written with IBM Granite and approved by the vendor.",
+  "problem_statement": { "program": "IBM SkillsBuild AICTE-2026", "id": 29, "title": "Street Vendor Digitalization Agent" },
+  "version": "0.1.0",
+  "note": "Project descriptor for this FastAPI app. It is not a LangFlow export.",
+  "stack": {
+    "backend": "Python FastAPI",
+    "frontend": "HTML, CSS, JavaScript (mobile-first)",
+    "database": "SQLite",
+    "ai": "IBM Granite via IBM watsonx.ai (IBM Cloud Lite)"
+  },
+  "run": {
+    "install": "pip install -r requirements.txt",
+    "start": "uvicorn app.main:app --reload",
+    "test": "python -m pytest -q",
+    "url": "http://127.0.0.1:8000"
+  },
+  "ibm": {
+    "auth_url": "https://iam.cloud.ibm.com/identity/token",
+    "chat_endpoint": "{IBM_REGION_URL}/ml/v1/text/chat?version={IBM_API_VERSION}",
+    "model_id": "ibm/granite-4-h-small",
+    "status": "Live call not yet verified with real credentials; confirm model and Lite quota in your IBM Cloud account."
+  },
+  "environment_variables": {
+    "IBM_API_KEY": "placeholder, set in .env (never commit)",
+    "IBM_PROJECT_ID": "placeholder, set in .env",
+    "IBM_REGION_URL": "https://us-south.ml.cloud.ibm.com",
+    "IBM_MODEL_ID": "ibm/granite-4-h-small",
+    "IBM_API_VERSION": "2025-10-25",
+    "DEMO_MODE": "true | false",
+    "DB_PATH": "dukaan.db"
+  },
+  "modes": {
+    "ibm-granite": "Used when IBM_API_KEY and IBM_PROJECT_ID are set and DEMO_MODE is not true. A failed IBM call returns HTTP 502; there is no silent fallback.",
+    "demo": "Labelled template text, not AI output."
+  },
+  "languages": ["en", "hi", "mr"],
+  "content_tasks": ["product_description", "whatsapp_promo", "festival_offer", "social_caption", "marketing_tips"],
+  "workflow": [
+    "Vendor request (task, product, festival, language)",
+    "Validate input",
+    "Load shop and product context from SQLite",
+    "Build prompt and call IBM Granite (or labelled demo template)",
+    "Validate output (length, markup, risky claims, PIN/OTP requests)",
+    "Save as draft; vendor edits and approves"
+  ],
+  "api": [
+    { "method": "GET", "path": "/api/status" },
+    { "method": "GET", "path": "/api/vendor" },
+    { "method": "PUT", "path": "/api/vendor" },
+    { "method": "GET", "path": "/api/products" },
+    { "method": "POST", "path": "/api/products" },
+    { "method": "PUT", "path": "/api/products/{id}" },
+    { "method": "DELETE", "path": "/api/products/{id}" },
+    { "method": "POST", "path": "/api/generate" },
+    { "method": "GET", "path": "/api/campaigns" },
+    { "method": "PATCH", "path": "/api/campaigns/{id}" },
+    { "method": "DELETE", "path": "/api/campaigns/{id}" },
+    { "method": "GET", "path": "/api/schemes" },
+    { "method": "GET", "path": "/api/upi-guide" },
+    { "method": "POST", "path": "/api/demo/seed" },
+    { "method": "GET", "path": "/api/profile/download" }
+  ],
+  "safeguards": [
+    "Vendor approves every draft; nothing is sent, paid for or submitted automatically",
+    "Never asks for UPI PIN, OTP or passwords",
+    "Scheme information lists official links only",
+    "Generated text labelled as an AI suggestion, not a guarantee",
+    "API keys stay in server environment variables"
+  ],
+  "limitations": "Single vendor, no login, SQLite prototype. Add authentication and a managed database before real use."
+}
