@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -215,12 +214,8 @@ textarea {
 
 const $ = s => document.querySelector(s);
 
-const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({
-    '&':'&amp;',
-    '<':'&lt;',
-    '>':'&gt;',
-    '"':'&quot;',
-    "'":'&#39;'
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
 }[c]));
 
 const TASKS = {
@@ -230,466 +225,292 @@ const TASKS = {
     social_caption:'Social media caption',
     marketing_tips:'Marketing & local SEO tips'
 };
+const PRODUCT_TASKS = ['whatsapp_promo','product_description','festival_offer','social_caption'];
+const LN = { en:'English', hi:'हिन्दी', mr:'मराठी' };
 
-const LN = {
-    en:'English',
-    hi:'हिन्दी',
-    mr:'मराठी'
-};
+/* ------------------------------------------------------------------
+   LOCAL STORAGE  (shop, products and messages live in this browser)
+------------------------------------------------------------------ */
+const KEY = 'dukaansaathi.v1';
+let storageOK = true;
 
-let S = {
-    vendor:null,
-    products:[],
-    camps:[],
+function readStore() {
+    const blank = { vendor:null, products:[], camps:[], nextId:1 };
+    let raw = null;
+    try { raw = localStorage.getItem(KEY); }
+    catch (e) { storageOK = false; return blank; }
+    if (!raw) return blank;
+    try {
+        const d = JSON.parse(raw);
+        const products = Array.isArray(d.products) ? d.products : [];
+        const camps = Array.isArray(d.camps) ? d.camps : [];
+        const maxId = Math.max(0, ...products.map(p => +p.id || 0), ...camps.map(c => +c.id || 0));
+        return {
+            vendor: d.vendor && typeof d.vendor === 'object' ? d.vendor : null,
+            products, camps,
+            nextId: Math.max(Number.isInteger(d.nextId) ? d.nextId : 1, maxId + 1)
+        };
+    } catch (e) {
+        // corrupted data: keep a copy instead of silently deleting it
+        try { localStorage.setItem(KEY + '.corrupt', raw); } catch (_) {}
+        return blank;
+    }
+}
+
+const S = Object.assign(readStore(), {
     tab:'home',
     gen:null,
     editP:null,
-    editV:false
-};
+    editV:false,
+    form:{ task:'whatsapp_promo', product_id:'', festival:'', language:'' }
+});
 
-// Notifications
+let warned = false;
+function persist() {
+    try {
+        localStorage.setItem(KEY, JSON.stringify({
+            vendor:S.vendor, products:S.products, camps:S.camps, nextId:S.nextId
+        }));
+    } catch (e) {
+        storageOK = false;
+        if (!warned) {
+            warned = true;
+            toast('Your browser is blocking saving (private mode?). Data will be lost when you close this page.', true);
+        }
+    }
+}
 
-function toast(m,bad=false) {
+const newId = () => S.nextId++;
+
+/* ------------------------------------------------------------------ */
+
+function toast(m, bad = false) {
     const e = $('#msg');
     e.textContent = m;
     e.style.background = bad ? '#c4352b' : '#2c7a4b';
     e.style.display = 'block';
-
     clearTimeout(window.toastTimer);
-
-    window.toastTimer = setTimeout(()=>{
-        e.style.display = 'none';
-    },3500);
+    window.toastTimer = setTimeout(() => { e.style.display = 'none'; }, 3500);
 }
 
-// API REQUEST
-
-async function api(p,o={}) {
-
-    const r = await fetch('/api'+p,{
-        headers:{
-            'Content-Type':'application/json'
-        },
+async function api(p, o = {}) {
+    const r = await fetch('/api' + p, {
+        headers:{ 'Content-Type':'application/json' },
         method:o.method || 'GET',
         body:o.body ? JSON.stringify(o.body) : undefined
     });
 
-    if(!r.ok) {
+    if (!r.ok) {
         let m = 'Something went wrong. Please try again.';
-
         try {
             const j = await r.json();
-
-            if(typeof j.detail === 'string') {
-                m = j.detail;
-            } else if(Array.isArray(j.detail)) {
-                m = j.detail.map(d=>d.msg).join('. ');
-            } else if(j.message) {
-                m = j.message;
-            }
-
+            if (typeof j.detail === 'string') m = j.detail;
+            else if (Array.isArray(j.detail)) m = j.detail.map(d => d.msg).join('. ');
+            else if (j.message) m = j.message;
         } catch {}
-
         throw new Error(m);
     }
-
-    if(r.status === 204) return null;
-
+    if (r.status === 204) return null;
     return r.json();
 }
 
-// LOAD APPLICATION DATA
+function form(f) { return Object.fromEntries(new FormData(f)); }
 
-async function load() {
-
-    const [m,v,p,c] = await Promise.all([
-        api('/status'),
-        api('/vendor'),
-        api('/products'),
-        api('/campaigns')
-    ]);
-
-    S.vendor = v;
-    S.products = p;
-    S.camps = c;
-
-    $('#mode').textContent = m.label || 'DukaanSaathi AI';
-
-    render();
+function hasBadChars(...vals) {
+    return vals.some(v => /[<>]/.test(v || '') || /[\u0000-\u001f]/.test(v || ''));
 }
 
-// COMMON ACTION
-
-async function act(fn,ok) {
-
-    try {
-        await fn();
-
-        if(ok) toast(ok);
-
-        await load();
-
-    } catch(e) {
-        toast(e.message, true);
-    }
+function download(name, text, type) {
+    const a = document.createElement('a');
+    const u = URL.createObjectURL(new Blob([text], { type }));
+    a.href = u;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 1500);
 }
 
-function form(f) {
-    return Object.fromEntries(new FormData(f));
+function downloadProfile() {
+    const v = S.vendor;
+    const rows = S.products.map(p =>
+        `<li>${esc(p.name)} - ₹${+p.price}/${esc(p.unit)}${p.description ? ' (' + esc(p.description) + ')' : ''}</li>`
+    ).join('');
+    const page = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(v.shop_name)}</title>`
+        + `<body style="font-family:sans-serif;max-width:480px;margin:auto;padding:16px"><h1>${esc(v.shop_name)}</h1>`
+        + `<p>${esc(v.business_type)} · ${esc(v.opening_hours)}</p><p>${esc(v.service_area || '')}</p><p>${esc(v.about || '')}</p>`
+        + `<h2>Products</h2><ul>${rows}</ul></body>`;
+    download('shop-profile.html', page, 'text/html;charset=utf-8');
 }
 
-// SHOP FORM
+function sampleShop() {
+    S.vendor = {
+        shop_name:'Raju Chai', business_type:'Tea stall', opening_hours:'7 AM - 9 PM',
+        language:'en', service_area:'Station Road', about:'', is_demo:1
+    };
+    S.products = [
+        { id:newId(), name:'Masala Chai', price:10, unit:'cup', description:'Fresh ginger and elaichi' },
+        { id:newId(), name:'Bun Maska', price:25, unit:'piece', description:'' }
+    ];
+    persist();
+}
 
-function vForm(v={}) {
+/* ------------------------------------------------------------------ */
 
+function vForm(v = {}) {
     return `
     <form id="vf">
-
-        <label>
-            Shop name
-            <input
-                name="shop_name"
-                required
-                minlength="2"
-                maxlength="80"
-                value="${esc(v.shop_name)}"
-                placeholder="Enter your shop name"
-            >
+        <label>Shop name
+            <input name="shop_name" required minlength="2" maxlength="80" value="${esc(v.shop_name)}" placeholder="Enter your shop name">
         </label>
-
-        <label>
-            What do you sell?
-            <input
-                name="business_type"
-                required
-                placeholder="Tea stall, vegetables, tailor..."
-                value="${esc(v.business_type)}"
-            >
+        <label>What do you sell?
+            <input name="business_type" required minlength="2" maxlength="60" placeholder="Tea stall, vegetables, tailor..." value="${esc(v.business_type)}">
         </label>
-
-        <label>
-            Opening hours
-            <input
-                name="opening_hours"
-                required
-                placeholder="7 AM - 9 PM"
-                value="${esc(v.opening_hours)}"
-            >
+        <label>Opening hours
+            <input name="opening_hours" required minlength="2" maxlength="60" placeholder="7 AM - 9 PM" value="${esc(v.opening_hours)}">
         </label>
-
-        <label>
-            Language
+        <label>Language
             <select name="language">
-                ${Object.entries(LN).map(([k,n])=>`
-                    <option value="${k}" ${v.language==k?'selected':''}>
-                        ${n}
-                    </option>
-                `).join('')}
+                ${Object.entries(LN).map(([k, n]) => `<option value="${k}" ${v.language == k ? 'selected' : ''}>${n}</option>`).join('')}
             </select>
         </label>
-
-        <label>
-            Area you serve (optional)
-            <input
-                name="service_area"
-                value="${esc(v.service_area)}"
-                placeholder="Enter your area"
-            >
+        <label>Area you serve (optional)
+            <input name="service_area" maxlength="100" value="${esc(v.service_area)}" placeholder="Enter your area">
         </label>
-
-        <button class="go" type="submit" id="saveShop">
-            Save shop
-        </button>
-
-    </form>
-    `;
+        <button class="go" type="submit" id="saveShop">Save shop</button>
+        ${v.shop_name ? '<button type="button" class="ghost" id="cv">Cancel</button>' : ''}
+    </form>`;
 }
 
-// MY SHOP PAGE
-
 function home() {
-
     const v = S.vendor;
 
-    if(!v || S.editV) {
-
+    if (!v || S.editV) {
         return `
         <div class="card">
-
-            <h2>
-                ${v ? 'Edit your shop' : 'Welcome! Set up your shop'}
-            </h2>
-
-            <p>
-                Enter your shop details to get started with DukaanSaathi AI.
-            </p>
-
+            <h2>${v ? 'Edit your shop' : 'Welcome! Set up your shop'}</h2>
+            <p>Enter your shop details to get started with DukaanSaathi AI.</p>
             ${vForm(v || {})}
-
-        </div>
-        `;
+            ${v ? '' : '<button type="button" class="ghost" id="sample">Try with a sample shop</button>'}
+        </div>`;
     }
 
     return `
     <div class="card">
-
         <h2>${esc(v.shop_name)}</h2>
-
-        <p>
-            ${esc(v.business_type)}
-            · ${esc(v.opening_hours)}
-            <br>
-            ${esc(v.service_area || '')}
-        </p>
-
+        <p>${esc(v.business_type)} · ${esc(v.opening_hours)}<br>${esc(v.service_area || '')}</p>
         <button id="ev">Edit shop</button>
-
-        <a class="btn go" href="/api/profile/download">
-            Download profile
-        </a>
-
+        <button class="go" id="dp">Download profile</button>
     </div>
 
     <div class="card">
-        <h3>
-            ${S.products.length} products · ${S.camps.length} messages
-        </h3>
+        <h3>${S.products.length} products · ${S.camps.length} messages</h3>
+        <p class="src">${storageOK
+            ? 'Saved in this browser only. Clearing browser data or using another phone will not carry it over, so take a backup now and then.'
+            : '⚠ Saving is blocked in this browser. Your data will be lost when you close the page.'}</p>
+        <button class="ghost" id="bk">Download backup</button>
+        <button class="ghost" id="rs">Restore backup</button>
+        <input type="file" id="rf" accept="application/json,.json" style="display:none">
     </div>
 
     <h3>Saved messages</h3>
-
-    ${
-        S.camps.length
-        ? S.camps.map(c=>`
+    ${S.camps.length
+        ? S.camps.map(c => `
             <div class="card">
-
-                <span class="tag">
-                    ${TASKS[c.task] || c.task}
-                    · ${LN[c.language] || c.language}
-                    · ${c.status}
-                </span>
-
-                <p style="white-space:pre-wrap">
-                    ${esc(c.text)}
-                </p>
-
-                <button class="ok" data-ap="${c.id}">
-                    Approve
-                </button>
-
-                <button class="ghost" data-cp="${c.id}">
-                    Copy
-                </button>
-
-                <button class="ghost" data-dl="${c.id}">
-                    Download
-                </button>
-
-                <button class="bad" data-dc="${c.id}">
-                    Delete
-                </button>
-
-            </div>
-        `).join('')
-        : '<div class="empty">No messages yet. Tap Create to write your first one.</div>'
-    }
+                <span class="tag">${esc(TASKS[c.task] || c.task)} · ${esc(LN[c.language] || c.language)} · ${esc(c.status)}</span>
+                <p style="white-space:pre-wrap">${esc(c.text)}</p>
+                <button class="ok" data-ap="${c.id}">Approve</button>
+                <button class="ghost" data-cp="${c.id}">Copy</button>
+                <button class="ghost" data-dl="${c.id}">Download</button>
+                <button class="bad" data-dc="${c.id}">Delete</button>
+            </div>`).join('')
+        : '<div class="empty">No messages yet. Tap Create to write your first one.</div>'}
     `;
 }
-
-// PRODUCTS PAGE
 
 function products() {
+    if (!S.vendor) return '<div class="empty">Set up your shop first.</div>';
 
-    if(!S.vendor) {
-        return '<div class="empty">Set up your shop first.</div>';
-    }
-
-    const e = S.products.find(p=>p.id==S.editP) || {};
+    const e = S.products.find(p => p.id == S.editP) || {};
 
     return `
-
     <div class="card">
-
         <h2>${e.id ? 'Edit product' : 'Add a product'}</h2>
-
         <form id="pf">
-
-            <label>
-                Name
-                <input
-                    name="name"
-                    required
-                    maxlength="80"
-                    value="${esc(e.name)}"
-                >
+            <label>Name
+                <input name="name" required maxlength="80" value="${esc(e.name)}">
             </label>
-
-            <label>
-                Price in ₹
-                <input
-                    name="price"
-                    type="number"
-                    step="0.5"
-                    min="1"
-                    required
-                    inputmode="decimal"
-                    value="${esc(e.price)}"
-                >
+            <label>Price in ₹
+                <input name="price" type="number" step="0.5" min="1" max="100000" required inputmode="decimal" value="${esc(e.price)}">
             </label>
-
-            <label>
-                Per (cup, kg, piece...)
-                <input
-                    name="unit"
-                    required
-                    value="${esc(e.unit || 'piece')}"
-                >
+            <label>Per (cup, kg, piece...)
+                <input name="unit" required maxlength="20" value="${esc(e.unit || 'piece')}">
             </label>
-
-            <label>
-                Note (optional)
-                <input
-                    name="description"
-                    maxlength="300"
-                    value="${esc(e.description)}"
-                >
+            <label>Note (optional)
+                <input name="description" maxlength="300" value="${esc(e.description)}">
             </label>
-
             <button class="go">Save product</button>
-
             ${e.id ? '<button type="button" class="ghost" id="cx">Cancel</button>' : ''}
-
         </form>
-
     </div>
 
-    ${
-        S.products.length
-        ? S.products.map(p=>`
+    ${S.products.length
+        ? S.products.map(p => `
             <div class="card">
-
-                <h3>
-                    ${esc(p.name)}
-                    <span class="tag">
-                        ₹${+p.price}/${esc(p.unit)}
-                    </span>
-                </h3>
-
+                <h3>${esc(p.name)} <span class="tag">₹${+p.price}/${esc(p.unit)}</span></h3>
                 <p>${esc(p.description || '')}</p>
-
                 <button data-ep="${p.id}">Edit</button>
-
-                <button class="bad" data-dp="${p.id}">
-                    Delete
-                </button>
-
-            </div>
-        `).join('')
-        : '<div class="empty">No products yet. Add your first one above.</div>'
-    }
-
+                <button class="bad" data-dp="${p.id}">Delete</button>
+            </div>`).join('')
+        : '<div class="empty">No products yet. Add your first one above.</div>'}
     `;
 }
-
-// AI CONTENT GENERATION
 
 function create() {
-
-    if(!S.vendor) {
-        return '<div class="empty">Set up your shop first.</div>';
-    }
+    if (!S.vendor) return '<div class="empty">Set up your shop first.</div>';
 
     const g = S.gen;
+    const f = S.form;
+    const lang = f.language || S.vendor.language || 'en';
 
     return `
-
     <div class="card">
-
         <h2>What do you need?</h2>
-
         <form id="gf">
-
-            <label>
-                Type
+            <label>Type
                 <select name="task">
-                    ${Object.entries(TASKS).map(([k,n])=>`
-                        <option value="${k}">${n}</option>
-                    `).join('')}
+                    ${Object.entries(TASKS).map(([k, n]) => `<option value="${k}" ${f.task == k ? 'selected' : ''}>${n}</option>`).join('')}
                 </select>
             </label>
-
-            <label>
-                Product
+            <label>Product
                 <select name="product_id">
                     <option value="">Choose...</option>
-
-                    ${S.products.map(p=>`
-                        <option value="${p.id}">
-                            ${esc(p.name)}
-                        </option>
-                    `).join('')}
-
+                    ${S.products.map(p => `<option value="${p.id}" ${f.product_id == p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
                 </select>
             </label>
-
-            <label>
-                Festival (for festival message)
-                <input
-                    name="festival"
-                    maxlength="40"
-                    placeholder="Diwali, Eid, Ganesh Chaturthi"
-                >
+            <label>Festival (for festival message)
+                <input name="festival" maxlength="40" placeholder="Diwali, Eid, Ganesh Chaturthi" value="${esc(f.festival)}">
             </label>
-
-            <label>
-                Language
+            <label>Language
                 <select name="language">
-                    ${Object.entries(LN).map(([k,n])=>`
-                        <option value="${k}" ${S.vendor.language==k?'selected':''}>
-                            ${n}
-                        </option>
-                    `).join('')}
+                    ${Object.entries(LN).map(([k, n]) => `<option value="${k}" ${lang == k ? 'selected' : ''}>${n}</option>`).join('')}
                 </select>
             </label>
-
-            <button class="go" id="gb">
-                Write it for me
-            </button>
-
+            <button class="go" id="gb">Write it for me</button>
         </form>
-
     </div>
 
-    ${
-        g
-        ? `
-            <div class="card">
-
-                <span class="tag">
-                    AI SUGGESTION ·
-                    ${g.source=='ibm-granite'?'IBM Granite':'Demo template'}
-                </span>
-
-                <textarea id="gt">${esc(g.text)}</textarea>
-
-                <p class="src">${esc(g.disclaimer)}</p>
-
-                <button class="ok" id="gs">
-                    Approve & save
-                </button>
-
-            </div>
-        `
-        : ''
-    }
-
+    ${g ? `
+        <div class="card">
+            <span class="tag">AI SUGGESTION · ${g.source == 'ibm-granite' ? 'IBM Granite' : 'Demo template'}</span>
+            <textarea id="gt">${esc(g.text)}</textarea>
+            <p class="src">${esc(g.disclaimer)}</p>
+            <button class="ok" id="gs">Approve &amp; save</button>
+        </div>` : ''}
     `;
 }
 
-// LEARN PAGE
-
 function learn() {
-
     return `
         <div class="card" id="upi">Loading...</div>
         <div class="card" id="sch">Loading...</div>
@@ -697,375 +518,283 @@ function learn() {
 }
 
 async function lrn() {
-
     try {
-
-        const [u,s] = await Promise.all([
-            api('/upi-guide'),
-            api('/schemes')
-        ]);
+        const [u, s] = await Promise.all([api('/upi-guide'), api('/schemes')]);
 
         $('#upi').innerHTML = `
             <h2>Get paid by UPI</h2>
-
             <p><b>⚠ ${esc(u.safety)}</b></p>
-
-            <ol>
-                ${u.steps.map(x=>`<li>${esc(x)}</li>`).join('')}
-            </ol>
-        `;
+            <ol>${u.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>`;
 
         $('#sch').innerHTML = `
             <h2>Government schemes</h2>
-
-            <p class="src">
-                Verified: official links only. ${esc(s.note)}
-            </p>
-
-            ${s.items.map(i=>`
-                <p>
-                    <b>${esc(i.name)}</b>
-                    (${esc(i.for)})
-                    <br>
-                    ${esc(i.summary)}
-                    <br>
-                    <a href="${esc(i.link)}" target="_blank" rel="noopener">
-                        Official website
-                    </a>
-                </p>
-            `).join('')}
-        `;
-
-    } catch(e) {
-        toast(e.message,true);
+            <p class="src">Verified: official links only. ${esc(s.note)}</p>
+            ${s.items.map(i => `
+                <p><b>${esc(i.name)}</b> (${esc(i.for)})<br>${esc(i.summary)}<br>
+                <a href="${esc(i.link)}" target="_blank" rel="noopener">Official website</a></p>`).join('')}`;
+    } catch (e) {
+        $('#upi').textContent = 'Could not load this page. Check your internet and try again.';
+        $('#sch').textContent = '';
+        toast(e.message, true);
     }
 }
-
-// RENDER PAGE
 
 function render() {
-
-    document.querySelectorAll('nav button').forEach(b=>{
-        b.setAttribute('aria-current',b.dataset.t==S.tab);
+    document.querySelectorAll('nav button').forEach(b => {
+        b.setAttribute('aria-current', b.dataset.t == S.tab);
     });
 
-    $('#v').innerHTML = {
-        home,
-        products,
-        create,
-        learn
-    }[S.tab]();
-
+    $('#v').innerHTML = { home, products, create, learn }[S.tab]();
     bind();
-
-    if(S.tab=='learn') lrn();
+    if (S.tab == 'learn') lrn();
 }
 
-// EVENT HANDLERS
+/* ------------------------------------------------------------------ */
 
 function bind() {
-
-    document.querySelectorAll('nav button').forEach(b=>{
-        b.onclick = ()=>{
-            S.tab = b.dataset.t;
-            render();
-        };
+    document.querySelectorAll('nav button').forEach(b => {
+        b.onclick = () => { S.tab = b.dataset.t; render(); scrollTo(0, 0); };
     });
 
-    const on = (s,fn)=>{
-        const e = $(s);
-        if(e) e.onclick = fn;
-    };
+    const on = (s, fn) => { const e = $(s); if (e) e.onclick = fn; };
 
-    // CREATE OR UPDATE SHOP
-
-    if($('#vf')) {
-
-        $('#vf').onsubmit = async e=>{
-
+    // ---- shop form
+    if ($('#vf')) {
+        $('#vf').onsubmit = e => {
             e.preventDefault();
+            const d = form(e.target);
+            const vendor = {
+                shop_name:d.shop_name.trim(),
+                business_type:d.business_type.trim(),
+                opening_hours:d.opening_hours.trim(),
+                language:d.language || 'en',
+                service_area:(d.service_area || '').trim(),
+                about:(S.vendor && S.vendor.about) || '',
+                is_demo:0
+            };
 
-            const f = e.target;
-            const btn = $('#saveShop');
-
-            const data = form(f);
-
-            data.shop_name = data.shop_name.trim();
-            data.business_type = data.business_type.trim();
-            data.opening_hours = data.opening_hours.trim();
-            data.service_area = (data.service_area || '').trim();
-
-            if(
-                !data.shop_name ||
-                !data.business_type ||
-                !data.opening_hours
-            ) {
-                toast('Please fill in all required fields.',true);
-                return;
+            if (!vendor.shop_name || !vendor.business_type || !vendor.opening_hours) {
+                return toast('Please fill in all required fields.', true);
+            }
+            if (hasBadChars(vendor.shop_name, vendor.business_type, vendor.opening_hours, vendor.service_area)) {
+                return toast('Remove special characters like < >', true);
             }
 
-            btn.disabled = true;
-            btn.textContent = 'Saving...';
-
-            try {
-
-                const saved = await api('/vendor',{
-                    method:'PUT',
-                    body:data
-                });
-
-                S.vendor = saved;
-                S.editV = false;
-                S.tab = 'home';
-
-                render();
-
-                toast('Your shop has been saved successfully!');
-
-            } catch(err) {
-
-                toast(err.message,true);
-
-                btn.disabled = false;
-                btn.textContent = 'Save shop';
-
-            }
+            S.vendor = vendor;
+            S.editV = false;
+            S.tab = 'home';
+            persist();
+            render();
+            toast('Your shop has been saved!');
         };
     }
 
-    // EDIT SHOP
+    on('#cv', () => { S.editV = false; render(); });
+    on('#ev', () => { S.editV = true; render(); scrollTo(0, 0); });
+    on('#sample', () => { sampleShop(); render(); toast('Sample shop added. You can edit it.'); });
+    on('#dp', downloadProfile);
 
-    on('#ev',()=>{
-        S.editV = true;
-        render();
-        scrollTo(0,0);
+    // ---- backup / restore
+    on('#bk', () => {
+        download('dukaansaathi-backup.json',
+            JSON.stringify({ vendor:S.vendor, products:S.products, camps:S.camps, nextId:S.nextId }, null, 2),
+            'application/json');
     });
-
-    // SAVE PRODUCT
-
-    if($('#pf')) {
-
-        $('#pf').onsubmit = e=>{
-
-            e.preventDefault();
-
-            const b = form(e.target);
-            b.price = parseFloat(b.price);
-
-            act(async()=>{
-
-                await api(
-                    '/products'+(S.editP ? '/'+S.editP : ''),
-                    {
-                        method:S.editP ? 'PUT' : 'POST',
-                        body:b
-                    }
-                );
-
-                S.editP = null;
-
-            },'Product saved');
+    on('#rs', () => $('#rf').click());
+    if ($('#rf')) {
+        $('#rf').onchange = e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const r = new FileReader();
+            r.onload = () => {
+                try {
+                    const d = JSON.parse(r.result);
+                    if (!d || !Array.isArray(d.products) || !Array.isArray(d.camps)) throw new Error('bad');
+                    if (!confirm('Replace the data in this browser with this backup?')) return;
+                    S.vendor = d.vendor || null;
+                    S.products = d.products;
+                    S.camps = d.camps;
+                    S.nextId = Math.max(+d.nextId || 1, ...d.products.map(p => +p.id || 0), ...d.camps.map(c => +c.id || 0)) + 1;
+                    S.gen = null;
+                    persist();
+                    render();
+                    toast('Backup restored');
+                } catch (x) {
+                    toast('That file is not a valid DukaanSaathi backup.', true);
+                }
+            };
+            r.readAsText(file);
         };
     }
 
-    // CANCEL PRODUCT EDIT
-
-    on('#cx',()=>{
-        S.editP = null;
-        render();
-    });
-
-    // EDIT PRODUCT
-
-    document.querySelectorAll('[data-ep]').forEach(b=>{
-        b.onclick = ()=>{
-            S.editP = b.dataset.ep;
-            render();
-            scrollTo(0,0);
-        };
-    });
-
-    // DELETE PRODUCT
-
-    document.querySelectorAll('[data-dp]').forEach(b=>{
-        b.onclick = ()=>{
-
-            if(confirm('Delete this product?')) {
-
-                act(
-                    ()=>api('/products/'+b.dataset.dp,{
-                        method:'DELETE'
-                    }),
-                    'Product deleted'
-                );
-
-            }
-        };
-    });
-
-    // GENERATE AI CONTENT
-
-    if($('#gf')) {
-
-        $('#gf').onsubmit = async e=>{
-
+    // ---- products
+    if ($('#pf')) {
+        $('#pf').onsubmit = e => {
             e.preventDefault();
-
             const b = form(e.target);
+            const item = {
+                name:b.name.trim(),
+                price:parseFloat(b.price),
+                unit:(b.unit || '').trim() || 'piece',
+                description:(b.description || '').trim()
+            };
 
-            b.product_id = b.product_id ? +b.product_id : null;
-            b.festival = b.festival || null;
+            if (!item.name) return toast('Enter a product name.', true);
+            if (!(item.price > 0 && item.price <= 100000)) return toast('Enter a price between 1 and 1,00,000.', true);
+            if (hasBadChars(item.name, item.unit, item.description)) return toast('Remove special characters like < >', true);
+
+            if (S.editP) {
+                const i = S.products.findIndex(p => p.id == S.editP);
+                if (i >= 0) S.products[i] = { ...S.products[i], ...item };
+            } else {
+                S.products.push({ id:newId(), ...item });
+            }
+
+            S.editP = null;
+            persist();
+            render();
+            toast('Product saved');
+        };
+    }
+
+    on('#cx', () => { S.editP = null; render(); });
+
+    document.querySelectorAll('[data-ep]').forEach(b => {
+        b.onclick = () => { S.editP = b.dataset.ep; render(); scrollTo(0, 0); };
+    });
+
+    document.querySelectorAll('[data-dp]').forEach(b => {
+        b.onclick = () => {
+            if (!confirm('Delete this product?')) return;
+            S.products = S.products.filter(p => p.id != b.dataset.dp);
+            if (S.form.product_id == b.dataset.dp) S.form.product_id = '';
+            if (S.editP == b.dataset.dp) S.editP = null;
+            persist();
+            render();
+            toast('Product deleted');
+        };
+    });
+
+    // ---- create (keep selections when the page redraws)
+    if ($('#gf')) {
+        const keep = () => { Object.assign(S.form, form($('#gf'))); };
+        $('#gf').addEventListener('input', keep);
+        $('#gf').addEventListener('change', keep);
+
+        $('#gf').onsubmit = async e => {
+            e.preventDefault();
+            keep();
+            const f = S.form;
+
+            let product = null;
+            if (PRODUCT_TASKS.includes(f.task)) {
+                const p = S.products.find(x => x.id == f.product_id);
+                if (!p) return toast('Choose a product first.', true);
+                product = { name:p.name, price:p.price, unit:p.unit, description:p.description || null };
+            }
+
+            const v = S.vendor;
+            const vendor = {
+                shop_name:v.shop_name,
+                business_type:v.business_type,
+                opening_hours:v.opening_hours,
+                language:v.language || 'en',
+                service_area:v.service_area || null,
+                about:v.about || null
+            };
 
             const btn = $('#gb');
-
             btn.disabled = true;
             btn.textContent = 'Writing...';
 
             try {
-
-                S.gen = await api('/generate',{
+                const out = await api('/generate', {
                     method:'POST',
-                    body:b
+                    body:{
+                        task:f.task,
+                        language:f.language || v.language || 'en',
+                        festival:f.festival ? f.festival.trim() : null,
+                        vendor, product
+                    }
                 });
-
-                await load();
-
-            } catch(x) {
-
-                toast(x.message,true);
-
+                S.gen = { ...out, product_id: product ? +f.product_id : null };
+                render();
+            } catch (x) {
+                toast(x.message, true);
                 btn.disabled = false;
                 btn.textContent = 'Write it for me';
-
             }
         };
     }
 
-    // APPROVE AND SAVE AI CONTENT
+    on('#gs', async () => {
+        const text = $('#gt').value.trim();
+        if (text.length < 5 || text.length > 2000) return toast('Message must be 5 to 2000 characters.', true);
+        if (hasBadChars(text.replace(/[\r\n\t]/g, ''))) return toast('Remove special characters like < >', true);
 
-    on('#gs',()=>{
-
-        act(async()=>{
-
-            await api('/campaigns/'+S.gen.id,{
-                method:'PATCH',
-                body:{
-                    text:$('#gt').value,
-                    status:'approved'
-                }
-            });
-
-            S.gen = null;
-            S.tab = 'home';
-
-        },'Message saved successfully');
+        S.camps.unshift({
+            id:newId(),
+            task:S.gen.task,
+            language:S.gen.language,
+            text,
+            source:S.gen.source,
+            status:'approved',
+            product_id:S.gen.product_id,
+            created:new Date().toISOString()
+        });
+        S.gen = null;
+        S.tab = 'home';
+        persist();
+        render();
+        toast('Message saved successfully');
     });
 
-    // CAMPAIGN HELPERS
+    // ---- saved messages
+    const cm = id => S.camps.find(c => c.id == id);
 
-    const cm = id=>S.camps.find(c=>c.id==id);
-
-    // APPROVE CAMPAIGN
-
-    document.querySelectorAll('[data-ap]').forEach(b=>{
-        b.onclick = ()=>{
-
-            act(
-                ()=>api('/campaigns/'+b.dataset.ap,{
-                    method:'PATCH',
-                    body:{status:'approved'}
-                }),
-                'Message approved'
-            );
-
+    document.querySelectorAll('[data-ap]').forEach(b => {
+        b.onclick = () => {
+            const c = cm(b.dataset.ap);
+            if (c) { c.status = 'approved'; persist(); render(); toast('Message approved'); }
         };
     });
 
-    // DELETE CAMPAIGN
-
-    document.querySelectorAll('[data-dc]').forEach(b=>{
-        b.onclick = ()=>{
-
-            if(confirm('Delete this message?')) {
-
-                act(
-                    ()=>api('/campaigns/'+b.dataset.dc,{
-                        method:'DELETE'
-                    }),
-                    'Message deleted'
-                );
-
-            }
+    document.querySelectorAll('[data-dc]').forEach(b => {
+        b.onclick = () => {
+            if (!confirm('Delete this message?')) return;
+            S.camps = S.camps.filter(c => c.id != b.dataset.dc);
+            persist();
+            render();
+            toast('Message deleted');
         };
     });
 
-    // COPY CAMPAIGN
-
-    document.querySelectorAll('[data-cp]').forEach(b=>{
-
-        b.onclick = ()=>{
-
+    document.querySelectorAll('[data-cp]').forEach(b => {
+        b.onclick = () => {
             const c = cm(b.dataset.cp);
-
-            if(!c) return;
-
+            if (!c) return;
             navigator.clipboard.writeText(c.text)
-                .then(()=>toast('Copied successfully'))
-                .catch(()=>toast('Could not copy message',true));
-
+                .then(() => toast('Copied successfully'))
+                .catch(() => toast('Could not copy message', true));
         };
     });
 
-    // DOWNLOAD CAMPAIGN
-
-    document.querySelectorAll('[data-dl]').forEach(b=>{
-
-        b.onclick = ()=>{
-
+    document.querySelectorAll('[data-dl]').forEach(b => {
+        b.onclick = () => {
             const c = cm(b.dataset.dl);
-
-            if(!c) return;
-
-            const a = document.createElement('a');
-
-            a.href = URL.createObjectURL(
-                new Blob(
-                    [c.text],
-                    {type:'text/plain;charset=utf-8'}
-                )
-            );
-
-            a.download = 'message.txt';
-            a.click();
-
-            URL.revokeObjectURL(a.href);
+            if (c) download('message.txt', c.text, 'text/plain;charset=utf-8');
         };
     });
-
 }
 
-// INITIAL LOAD
+/* ------------------------------------------------------------------
+   START: show saved data immediately, check AI mode in the background
+------------------------------------------------------------------ */
+render();
 
-load().catch(e=>{
-
-    console.error('Application loading error:',e);
-
-    $('#v').innerHTML = `
-        <div class="card">
-            <h2>Cannot reach the server</h2>
-
-            <p>
-                The application could not connect to the backend.
-                Please check your deployment and refresh the page.
-            </p>
-
-            <button class="go" onclick="location.reload()">
-                Retry
-            </button>
-        </div>
-    `;
-
-});
+api('/status')
+    .then(m => { $('#mode').textContent = m.label || 'DukaanSaathi AI'; })
+    .catch(() => { $('#mode').textContent = 'Offline: your shop is saved, AI writing needs internet'; });
 
 </script>
 
