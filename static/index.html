@@ -343,18 +343,6 @@ function downloadProfile() {
     download('shop-profile.html', page, 'text/html;charset=utf-8');
 }
 
-function sampleShop() {
-    S.vendor = {
-        shop_name:'Raju Chai', business_type:'Tea stall', opening_hours:'7 AM - 9 PM',
-        language:'en', service_area:'Station Road', about:'', is_demo:1
-    };
-    S.products = [
-        { id:newId(), name:'Masala Chai', price:10, unit:'cup', description:'Fresh ginger and elaichi' },
-        { id:newId(), name:'Bun Maska', price:25, unit:'piece', description:'' }
-    ];
-    persist();
-}
-
 /* ------------------------------------------------------------------ */
 
 function vForm(v = {}) {
@@ -391,7 +379,6 @@ function home() {
             <h2>${v ? 'Edit your shop' : 'Welcome! Set up your shop'}</h2>
             <p>Enter your shop details to get started with DukaanSaathi AI.</p>
             ${vForm(v || {})}
-            ${v ? '' : '<button type="button" class="ghost" id="sample">Try with a sample shop</button>'}
         </div>`;
     }
 
@@ -591,7 +578,6 @@ function bind() {
 
     on('#cv', () => { S.editV = false; render(); });
     on('#ev', () => { S.editV = true; render(); scrollTo(0, 0); });
-    on('#sample', () => { sampleShop(); render(); toast('Sample shop added. You can edit it.'); });
     on('#dp', downloadProfile);
 
     // ---- backup / restore
