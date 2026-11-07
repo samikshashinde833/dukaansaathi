@@ -152,5 +152,8 @@ def download_profile():
 
 _S = os.path.join(os.path.dirname(__file__), "..", "static")
 app.mount("/static", StaticFiles(directory=_S), name="static")
+
 @app.get("/")
-def index(): return FileResponse(os.path.join(_S, "index.html"))
+@app.get("/api/index")
+def index():
+    return FileResponse(os.path.join(_S, "index.html"))
