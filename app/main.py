@@ -130,15 +130,6 @@ def schemes(): return {"items": C.SCHEMES, "note": C.SCHEME_NOTE, "verified_fact
 @app.get("/api/upi-guide")
 def upi(): return {"steps": C.UPI, "safety": C.UPI_SAFETY}
 
-@app.post("/api/demo/seed")
-def seed():
-    with db() as c:
-        c.executescript("DELETE FROM products; DELETE FROM campaigns;")
-        c.execute("INSERT OR REPLACE INTO vendor VALUES(1,'Sharma Chai & Vada Pav','Food stall','7 AM - 9 PM','hi','Andheri East, Mumbai','Demo shop for presentations',1)")
-        for n, p, u, d in [("Masala Chai", 15, "cup", "Fresh ginger and elaichi"), ("Vada Pav", 20, "piece", "Hot and fresh"), ("Misal Pav", 60, "plate", "Medium spicy")]:
-            c.execute("INSERT INTO products(name,price,unit,description) VALUES(?,?,?,?)", (n, p, u, d))
-        return vendor_or_404(c)
-
 @app.get("/api/profile/download")
 def download_profile():
     with db() as c:

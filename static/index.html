@@ -1,78 +1,1073 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DukaanSaathi AI</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet">
+
 <style>
-:root{--ink:#1d2547;--chalk:#fff8e8;--turmeric:#f2a900;--chili:#c4352b;--leaf:#2c7a4b;--card:#fff;--line:#e8dcc0}
-*{box-sizing:border-box}body{margin:0;background:var(--chalk);color:var(--ink);font:17px/1.5 "Noto Sans",system-ui,sans-serif;padding-bottom:84px}
-h1,h2,h3{font-family:"Baloo 2",sans-serif;margin:.2em 0}header{background:var(--ink);color:#fff;padding:14px 16px}
-header h1{font-size:1.5rem;margin:0}#mode{display:block;margin-top:4px;font-size:.85rem;background:var(--turmeric);color:var(--ink);padding:4px 10px;border-radius:99px;width:fit-content}
-main{padding:16px;max-width:560px;margin:auto}.card{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
-label{display:block;font-weight:600;margin-top:10px}input,select,textarea{width:100%;font:inherit;padding:12px;border:2px solid var(--line);border-radius:10px;min-height:48px;background:#fff;color:var(--ink)}
-button,.btn{font:600 1rem "Noto Sans";min-height:48px;padding:10px 18px;border:0;border-radius:10px;background:var(--ink);color:#fff;margin:8px 8px 0 0;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
-.go{background:var(--turmeric);color:var(--ink)}.bad{background:var(--chili)}.ok{background:var(--leaf)}.ghost{background:#fff;color:var(--ink);border:2px solid var(--ink)}
-nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:2px solid var(--line)}
-nav button{flex:1;margin:0;border-radius:0;background:#fff;color:var(--ink);min-height:68px;flex-direction:column;justify-content:center;font-size:.85rem}
-nav button[aria-current=true]{background:var(--turmeric)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--chili);outline-offset:2px}
-#msg{position:fixed;top:0;left:0;right:0;padding:12px 16px;font-weight:600;display:none;z-index:9;color:#fff}.tag{font-size:.8rem;background:var(--line);padding:2px 8px;border-radius:99px}
-.empty{text-align:center;padding:20px;color:#5b6180}.src{font-size:.85rem;color:#5b6180}textarea{min-height:140px}
-</style></head><body>
-<header><h1>DukaanSaathi AI</h1><span id="mode">Loading…</span></header><div id="msg" role="alert"></div>
+:root {
+    --ink:#1d2547;
+    --chalk:#fff8e8;
+    --turmeric:#f2a900;
+    --chili:#c4352b;
+    --leaf:#2c7a4b;
+    --card:#fff;
+    --line:#e8dcc0;
+}
+
+* { box-sizing:border-box; }
+
+body {
+    margin:0;
+    background:var(--chalk);
+    color:var(--ink);
+    font:17px/1.5 "Noto Sans",system-ui,sans-serif;
+    padding-bottom:84px;
+}
+
+h1,h2,h3 {
+    font-family:"Baloo 2",sans-serif;
+    margin:.2em 0;
+}
+
+header {
+    background:var(--ink);
+    color:#fff;
+    padding:14px 16px;
+}
+
+header h1 {
+    font-size:1.5rem;
+    margin:0;
+}
+
+#mode {
+    display:block;
+    margin-top:4px;
+    font-size:.85rem;
+    background:var(--turmeric);
+    color:var(--ink);
+    padding:4px 10px;
+    border-radius:99px;
+    width:fit-content;
+}
+
+main {
+    padding:16px;
+    max-width:560px;
+    margin:auto;
+}
+
+.card {
+    background:var(--card);
+    border:2px solid var(--line);
+    border-radius:14px;
+    padding:14px;
+    margin:12px 0;
+}
+
+label {
+    display:block;
+    font-weight:600;
+    margin-top:10px;
+}
+
+input,select,textarea {
+    width:100%;
+    font:inherit;
+    padding:12px;
+    border:2px solid var(--line);
+    border-radius:10px;
+    min-height:48px;
+    background:#fff;
+    color:var(--ink);
+}
+
+button,.btn {
+    font:600 1rem "Noto Sans";
+    min-height:48px;
+    padding:10px 18px;
+    border:0;
+    border-radius:10px;
+    background:var(--ink);
+    color:#fff;
+    margin:8px 8px 0 0;
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+}
+
+button:disabled {
+    opacity:.6;
+    cursor:not-allowed;
+}
+
+.go {
+    background:var(--turmeric);
+    color:var(--ink);
+}
+
+.bad { background:var(--chili); }
+.ok { background:var(--leaf); }
+
+.ghost {
+    background:#fff;
+    color:var(--ink);
+    border:2px solid var(--ink);
+}
+
+nav {
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    display:flex;
+    background:#fff;
+    border-top:2px solid var(--line);
+}
+
+nav button {
+    flex:1;
+    margin:0;
+    border-radius:0;
+    background:#fff;
+    color:var(--ink);
+    min-height:68px;
+    flex-direction:column;
+    justify-content:center;
+    font-size:.85rem;
+}
+
+nav button[aria-current=true] {
+    background:var(--turmeric);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline:3px solid var(--chili);
+    outline-offset:2px;
+}
+
+#msg {
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    padding:12px 16px;
+    font-weight:600;
+    display:none;
+    z-index:9;
+    color:#fff;
+}
+
+.tag {
+    font-size:.8rem;
+    background:var(--line);
+    padding:2px 8px;
+    border-radius:99px;
+}
+
+.empty {
+    text-align:center;
+    padding:20px;
+    color:#5b6180;
+}
+
+.src {
+    font-size:.85rem;
+    color:#5b6180;
+}
+
+textarea {
+    min-height:140px;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>DukaanSaathi AI</h1>
+    <span id="mode">Loading...</span>
+</header>
+
+<div id="msg" role="alert"></div>
+
 <main id="v"></main>
-<nav aria-label="Main"><button data-t="home">🏪<span>My shop</span></button><button data-t="products">🧺<span>Products</span></button><button data-t="create">✍️<span>Create</span></button><button data-t="learn">📚<span>Learn</span></button></nav>
+
+<nav aria-label="Main">
+    <button data-t="home">🏪<span>My shop</span></button>
+    <button data-t="products">🧺<span>Products</span></button>
+    <button data-t="create">✍️<span>Create</span></button>
+    <button data-t="learn">📚<span>Learn</span></button>
+</nav>
+
 <script>
-const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const TASKS={whatsapp_promo:'WhatsApp message',product_description:'Product description',festival_offer:'Festival message',social_caption:'Social media caption',marketing_tips:'Marketing & local SEO tips'};
-const LN={en:'English',hi:'हिन्दी',mr:'मराठी'};let S={vendor:null,products:[],camps:[],tab:'home',gen:null,editP:null,editV:false};
-function toast(m,bad){const e=$('#msg');e.textContent=m;e.style.background=bad?'#c4352b':'#2c7a4b';e.style.display='block';setTimeout(()=>e.style.display='none',3500)}
-async function api(p,o={}){const r=await fetch('/api'+p,{headers:{'Content-Type':'application/json'},method:o.method,body:o.body?JSON.stringify(o.body):undefined});
- if(!r.ok){let m='Something went wrong. Please try again.';try{const j=await r.json();m=typeof j.detail==='string'?j.detail:j.detail.map(d=>d.msg).join('. ')}catch{}throw new Error(m)}return r.status==204?null:r.json()}
-async function load(){const[m,v,p,c]=await Promise.all([api('/status'),api('/vendor'),api('/products'),api('/campaigns')]);S.vendor=v;S.products=p;S.camps=c;$('#mode').textContent=m.label;render()}
-async function act(fn,ok){try{await fn();if(ok)toast(ok);await load()}catch(e){toast(e.message,1)}}
-function form(f){return Object.fromEntries(new FormData(f))}
-function vForm(v={}){return`<form id="vf"><label>Shop name<input name="shop_name" required minlength="2" maxlength="80" value="${esc(v.shop_name)}"></label>
-<label>What do you sell?<input name="business_type" required placeholder="Tea stall, vegetables, tailor…" value="${esc(v.business_type)}"></label>
-<label>Opening hours<input name="opening_hours" required placeholder="7 AM - 9 PM" value="${esc(v.opening_hours)}"></label>
-<label>Language<select name="language">${Object.entries(LN).map(([k,n])=>`<option value="${k}" ${v.language==k?'selected':''}>${n}</option>`).join('')}</select></label>
-<label>Area you serve (optional)<input name="service_area" value="${esc(v.service_area)}"></label><button class="go">Save shop</button></form>`}
-function home(){const v=S.vendor;if(!v||S.editV)return`<div class="card"><h2>${v?'Edit your shop':'Welcome! Set up your shop'}</h2>${vForm(v||{})}</div>
-${v?'':'<div class="card"><b>Presenting?</b><br><button class="ghost" id="seed">Load demo shop</button></div>'}`;
-return`<div class="card"><h2>${esc(v.shop_name)} ${v.is_demo?'<span class="tag">DEMO DATA</span>':''}</h2><p>${esc(v.business_type)} · ${esc(v.opening_hours)}<br>${esc(v.service_area||'')}</p>
-<button id="ev">Edit shop</button><a class="btn go" href="/api/profile/download">Download profile</a></div>
-<div class="card"><h3>${S.products.length} products · ${S.camps.length} messages</h3></div><h3>Saved messages</h3>${S.camps.length?S.camps.map(c=>`<div class="card"><span class="tag">${TASKS[c.task]} · ${LN[c.language]} · ${c.status}</span>
-<p style="white-space:pre-wrap">${esc(c.text)}</p><button class="ok" data-ap="${c.id}">Approve</button><button class="ghost" data-cp="${c.id}">Copy</button><button class="ghost" data-dl="${c.id}">Download</button><button class="bad" data-dc="${c.id}">Delete</button></div>`).join(''):'<div class="empty">No messages yet. Tap Create to write your first one.</div>'}`}
-function products(){if(!S.vendor)return'<div class="empty">Set up your shop first.</div>';const e=S.products.find(p=>p.id==S.editP)||{};
-return`<div class="card"><h2>${e.id?'Edit product':'Add a product'}</h2><form id="pf"><label>Name<input name="name" required maxlength="80" value="${esc(e.name)}"></label>
-<label>Price in ₹<input name="price" type="number" step="0.5" min="1" required inputmode="decimal" value="${esc(e.price)}"></label><label>Per (cup, kg, piece…)<input name="unit" required value="${esc(e.unit||'piece')}"></label>
-<label>Note (optional)<input name="description" maxlength="300" value="${esc(e.description)}"></label><button class="go">Save product</button>${e.id?'<button type="button" class="ghost" id="cx">Cancel</button>':''}</form></div>
-${S.products.length?S.products.map(p=>`<div class="card"><h3>${esc(p.name)} <span class="tag">₹${+p.price}/${esc(p.unit)}</span></h3><p>${esc(p.description||'')}</p><button data-ep="${p.id}">Edit</button><button class="bad" data-dp="${p.id}">Delete</button></div>`).join(''):'<div class="empty">No products yet. Add your first one above.</div>'}`}
-function create(){if(!S.vendor)return'<div class="empty">Set up your shop first.</div>';const g=S.gen;
-return`<div class="card"><h2>What do you need?</h2><form id="gf"><label>Type<select name="task">${Object.entries(TASKS).map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select></label>
-<label>Product<select name="product_id"><option value="">Choose…</option>${S.products.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label>
-<label>Festival (for festival message)<input name="festival" maxlength="40" placeholder="Diwali, Eid, Ganesh Chaturthi"></label>
-<label>Language<select name="language">${Object.entries(LN).map(([k,n])=>`<option value="${k}" ${S.vendor.language==k?'selected':''}>${n}</option>`).join('')}</select></label><button class="go" id="gb">Write it for me</button></form></div>
-${g?`<div class="card"><span class="tag">AI SUGGESTION · ${g.source=='ibm-granite'?'IBM Granite':'Demo template'}</span><textarea id="gt">${esc(g.text)}</textarea><p class="src">${esc(g.disclaimer)}</p>
-<button class="ok" id="gs">Approve & save</button></div>`:''}`}
-function learn(){return`<div class="card" id="upi">Loading…</div><div class="card" id="sch">Loading…</div>`}
-function render(){document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.t==S.tab));$('#v').innerHTML={home,products,create,learn}[S.tab]();bind();if(S.tab=='learn')lrn()}
-async function lrn(){try{const[u,s]=await Promise.all([api('/upi-guide'),api('/schemes')]);
-$('#upi').innerHTML=`<h2>Get paid by UPI</h2><p><b>⚠ ${esc(u.safety)}</b></p><ol>${u.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`;
-$('#sch').innerHTML=`<h2>Government schemes</h2><p class="src">Verified: official links only. ${esc(s.note)}</p>${s.items.map(i=>`<p><b>${esc(i.name)}</b> (${esc(i.for)})<br>${esc(i.summary)}<br><a href="${esc(i.link)}" target="_blank" rel="noopener">Official website</a></p>`).join('')}`}catch(e){toast(e.message,1)}}
-function bind(){
- document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;render()});
- const on=(s,fn)=>{const e=$(s);if(e)e.onclick=fn};
- if($('#vf'))$('#vf').onsubmit=e=>{e.preventDefault();act(async()=>{await api('/vendor',{method:'PUT',body:form(e.target)});S.editV=false},'Shop saved')};
- on('#seed',()=>act(()=>api('/demo/seed',{method:'POST'}),'Demo shop loaded'));on('#ev',()=>{S.editV=true;render()});
- if($('#pf'))$('#pf').onsubmit=e=>{e.preventDefault();const b=form(e.target);b.price=parseFloat(b.price);act(async()=>{await api('/products'+(S.editP?'/'+S.editP:''),{method:S.editP?'PUT':'POST',body:b});S.editP=null},'Product saved')};
- on('#cx',()=>{S.editP=null;render()});
- document.querySelectorAll('[data-ep]').forEach(b=>b.onclick=()=>{S.editP=b.dataset.ep;render();scrollTo(0,0)});
- document.querySelectorAll('[data-dp]').forEach(b=>b.onclick=()=>confirm('Delete this product?')&&act(()=>api('/products/'+b.dataset.dp,{method:'DELETE'}),'Deleted'));
- if($('#gf'))$('#gf').onsubmit=async e=>{e.preventDefault();const b=form(e.target);b.product_id=b.product_id?+b.product_id:null;b.festival=b.festival||null;const btn=$('#gb');btn.disabled=true;btn.textContent='Writing…';
-  try{S.gen=await api('/generate',{method:'POST',body:b});await load()}catch(x){toast(x.message,1);btn.disabled=false;btn.textContent='Write it for me'}};
- on('#gs',()=>act(async()=>{await api('/campaigns/'+S.gen.id,{method:'PATCH',body:{text:$('#gt').value,status:'approved'}});S.gen=null;S.tab='home'},'Saved'));
- const cm=id=>S.camps.find(c=>c.id==id);
- document.querySelectorAll('[data-ap]').forEach(b=>b.onclick=()=>act(()=>api('/campaigns/'+b.dataset.ap,{method:'PATCH',body:{status:'approved'}}),'Approved'));
- document.querySelectorAll('[data-dc]').forEach(b=>b.onclick=()=>act(()=>api('/campaigns/'+b.dataset.dc,{method:'DELETE'}),'Deleted'));
- document.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(cm(b.dataset.cp).text).then(()=>toast('Copied'),()=>toast('Could not copy',1)));
- document.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([cm(b.dataset.dl).text],{type:'text/plain;charset=utf-8'}));a.download='message.txt';a.click()})}
-load().catch(e=>{$('#v').innerHTML='<div class="empty">Cannot reach the server. Check that it is running, then refresh.</div>'});
-</script></body></html>
+
+const $ = s => document.querySelector(s);
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+}[c]));
+
+const TASKS = {
+    whatsapp_promo:'WhatsApp message',
+    product_description:'Product description',
+    festival_offer:'Festival message',
+    social_caption:'Social media caption',
+    marketing_tips:'Marketing & local SEO tips'
+};
+
+const LN = {
+    en:'English',
+    hi:'हिन्दी',
+    mr:'मराठी'
+};
+
+let S = {
+    vendor:null,
+    products:[],
+    camps:[],
+    tab:'home',
+    gen:null,
+    editP:null,
+    editV:false
+};
+
+// Notifications
+
+function toast(m,bad=false) {
+    const e = $('#msg');
+    e.textContent = m;
+    e.style.background = bad ? '#c4352b' : '#2c7a4b';
+    e.style.display = 'block';
+
+    clearTimeout(window.toastTimer);
+
+    window.toastTimer = setTimeout(()=>{
+        e.style.display = 'none';
+    },3500);
+}
+
+// API REQUEST
+
+async function api(p,o={}) {
+
+    const r = await fetch('/api'+p,{
+        headers:{
+            'Content-Type':'application/json'
+        },
+        method:o.method || 'GET',
+        body:o.body ? JSON.stringify(o.body) : undefined
+    });
+
+    if(!r.ok) {
+        let m = 'Something went wrong. Please try again.';
+
+        try {
+            const j = await r.json();
+
+            if(typeof j.detail === 'string') {
+                m = j.detail;
+            } else if(Array.isArray(j.detail)) {
+                m = j.detail.map(d=>d.msg).join('. ');
+            } else if(j.message) {
+                m = j.message;
+            }
+
+        } catch {}
+
+        throw new Error(m);
+    }
+
+    if(r.status === 204) return null;
+
+    return r.json();
+}
+
+// LOAD APPLICATION DATA
+
+async function load() {
+
+    const [m,v,p,c] = await Promise.all([
+        api('/status'),
+        api('/vendor'),
+        api('/products'),
+        api('/campaigns')
+    ]);
+
+    S.vendor = v;
+    S.products = p;
+    S.camps = c;
+
+    $('#mode').textContent = m.label || 'DukaanSaathi AI';
+
+    render();
+}
+
+// COMMON ACTION
+
+async function act(fn,ok) {
+
+    try {
+        await fn();
+
+        if(ok) toast(ok);
+
+        await load();
+
+    } catch(e) {
+        toast(e.message, true);
+    }
+}
+
+function form(f) {
+    return Object.fromEntries(new FormData(f));
+}
+
+// SHOP FORM
+
+function vForm(v={}) {
+
+    return `
+    <form id="vf">
+
+        <label>
+            Shop name
+            <input
+                name="shop_name"
+                required
+                minlength="2"
+                maxlength="80"
+                value="${esc(v.shop_name)}"
+                placeholder="Enter your shop name"
+            >
+        </label>
+
+        <label>
+            What do you sell?
+            <input
+                name="business_type"
+                required
+                placeholder="Tea stall, vegetables, tailor..."
+                value="${esc(v.business_type)}"
+            >
+        </label>
+
+        <label>
+            Opening hours
+            <input
+                name="opening_hours"
+                required
+                placeholder="7 AM - 9 PM"
+                value="${esc(v.opening_hours)}"
+            >
+        </label>
+
+        <label>
+            Language
+            <select name="language">
+                ${Object.entries(LN).map(([k,n])=>`
+                    <option value="${k}" ${v.language==k?'selected':''}>
+                        ${n}
+                    </option>
+                `).join('')}
+            </select>
+        </label>
+
+        <label>
+            Area you serve (optional)
+            <input
+                name="service_area"
+                value="${esc(v.service_area)}"
+                placeholder="Enter your area"
+            >
+        </label>
+
+        <button class="go" type="submit" id="saveShop">
+            Save shop
+        </button>
+
+    </form>
+    `;
+}
+
+// MY SHOP PAGE
+
+function home() {
+
+    const v = S.vendor;
+
+    if(!v || S.editV) {
+
+        return `
+        <div class="card">
+
+            <h2>
+                ${v ? 'Edit your shop' : 'Welcome! Set up your shop'}
+            </h2>
+
+            <p>
+                Enter your shop details to get started with DukaanSaathi AI.
+            </p>
+
+            ${vForm(v || {})}
+
+        </div>
+        `;
+    }
+
+    return `
+    <div class="card">
+
+        <h2>${esc(v.shop_name)}</h2>
+
+        <p>
+            ${esc(v.business_type)}
+            · ${esc(v.opening_hours)}
+            <br>
+            ${esc(v.service_area || '')}
+        </p>
+
+        <button id="ev">Edit shop</button>
+
+        <a class="btn go" href="/api/profile/download">
+            Download profile
+        </a>
+
+    </div>
+
+    <div class="card">
+        <h3>
+            ${S.products.length} products · ${S.camps.length} messages
+        </h3>
+    </div>
+
+    <h3>Saved messages</h3>
+
+    ${
+        S.camps.length
+        ? S.camps.map(c=>`
+            <div class="card">
+
+                <span class="tag">
+                    ${TASKS[c.task] || c.task}
+                    · ${LN[c.language] || c.language}
+                    · ${c.status}
+                </span>
+
+                <p style="white-space:pre-wrap">
+                    ${esc(c.text)}
+                </p>
+
+                <button class="ok" data-ap="${c.id}">
+                    Approve
+                </button>
+
+                <button class="ghost" data-cp="${c.id}">
+                    Copy
+                </button>
+
+                <button class="ghost" data-dl="${c.id}">
+                    Download
+                </button>
+
+                <button class="bad" data-dc="${c.id}">
+                    Delete
+                </button>
+
+            </div>
+        `).join('')
+        : '<div class="empty">No messages yet. Tap Create to write your first one.</div>'
+    }
+    `;
+}
+
+// PRODUCTS PAGE
+
+function products() {
+
+    if(!S.vendor) {
+        return '<div class="empty">Set up your shop first.</div>';
+    }
+
+    const e = S.products.find(p=>p.id==S.editP) || {};
+
+    return `
+
+    <div class="card">
+
+        <h2>${e.id ? 'Edit product' : 'Add a product'}</h2>
+
+        <form id="pf">
+
+            <label>
+                Name
+                <input
+                    name="name"
+                    required
+                    maxlength="80"
+                    value="${esc(e.name)}"
+                >
+            </label>
+
+            <label>
+                Price in ₹
+                <input
+                    name="price"
+                    type="number"
+                    step="0.5"
+                    min="1"
+                    required
+                    inputmode="decimal"
+                    value="${esc(e.price)}"
+                >
+            </label>
+
+            <label>
+                Per (cup, kg, piece...)
+                <input
+                    name="unit"
+                    required
+                    value="${esc(e.unit || 'piece')}"
+                >
+            </label>
+
+            <label>
+                Note (optional)
+                <input
+                    name="description"
+                    maxlength="300"
+                    value="${esc(e.description)}"
+                >
+            </label>
+
+            <button class="go">Save product</button>
+
+            ${e.id ? '<button type="button" class="ghost" id="cx">Cancel</button>' : ''}
+
+        </form>
+
+    </div>
+
+    ${
+        S.products.length
+        ? S.products.map(p=>`
+            <div class="card">
+
+                <h3>
+                    ${esc(p.name)}
+                    <span class="tag">
+                        ₹${+p.price}/${esc(p.unit)}
+                    </span>
+                </h3>
+
+                <p>${esc(p.description || '')}</p>
+
+                <button data-ep="${p.id}">Edit</button>
+
+                <button class="bad" data-dp="${p.id}">
+                    Delete
+                </button>
+
+            </div>
+        `).join('')
+        : '<div class="empty">No products yet. Add your first one above.</div>'
+    }
+
+    `;
+}
+
+// AI CONTENT GENERATION
+
+function create() {
+
+    if(!S.vendor) {
+        return '<div class="empty">Set up your shop first.</div>';
+    }
+
+    const g = S.gen;
+
+    return `
+
+    <div class="card">
+
+        <h2>What do you need?</h2>
+
+        <form id="gf">
+
+            <label>
+                Type
+                <select name="task">
+                    ${Object.entries(TASKS).map(([k,n])=>`
+                        <option value="${k}">${n}</option>
+                    `).join('')}
+                </select>
+            </label>
+
+            <label>
+                Product
+                <select name="product_id">
+                    <option value="">Choose...</option>
+
+                    ${S.products.map(p=>`
+                        <option value="${p.id}">
+                            ${esc(p.name)}
+                        </option>
+                    `).join('')}
+
+                </select>
+            </label>
+
+            <label>
+                Festival (for festival message)
+                <input
+                    name="festival"
+                    maxlength="40"
+                    placeholder="Diwali, Eid, Ganesh Chaturthi"
+                >
+            </label>
+
+            <label>
+                Language
+                <select name="language">
+                    ${Object.entries(LN).map(([k,n])=>`
+                        <option value="${k}" ${S.vendor.language==k?'selected':''}>
+                            ${n}
+                        </option>
+                    `).join('')}
+                </select>
+            </label>
+
+            <button class="go" id="gb">
+                Write it for me
+            </button>
+
+        </form>
+
+    </div>
+
+    ${
+        g
+        ? `
+            <div class="card">
+
+                <span class="tag">
+                    AI SUGGESTION ·
+                    ${g.source=='ibm-granite'?'IBM Granite':'Demo template'}
+                </span>
+
+                <textarea id="gt">${esc(g.text)}</textarea>
+
+                <p class="src">${esc(g.disclaimer)}</p>
+
+                <button class="ok" id="gs">
+                    Approve & save
+                </button>
+
+            </div>
+        `
+        : ''
+    }
+
+    `;
+}
+
+// LEARN PAGE
+
+function learn() {
+
+    return `
+        <div class="card" id="upi">Loading...</div>
+        <div class="card" id="sch">Loading...</div>
+    `;
+}
+
+async function lrn() {
+
+    try {
+
+        const [u,s] = await Promise.all([
+            api('/upi-guide'),
+            api('/schemes')
+        ]);
+
+        $('#upi').innerHTML = `
+            <h2>Get paid by UPI</h2>
+
+            <p><b>⚠ ${esc(u.safety)}</b></p>
+
+            <ol>
+                ${u.steps.map(x=>`<li>${esc(x)}</li>`).join('')}
+            </ol>
+        `;
+
+        $('#sch').innerHTML = `
+            <h2>Government schemes</h2>
+
+            <p class="src">
+                Verified: official links only. ${esc(s.note)}
+            </p>
+
+            ${s.items.map(i=>`
+                <p>
+                    <b>${esc(i.name)}</b>
+                    (${esc(i.for)})
+                    <br>
+                    ${esc(i.summary)}
+                    <br>
+                    <a href="${esc(i.link)}" target="_blank" rel="noopener">
+                        Official website
+                    </a>
+                </p>
+            `).join('')}
+        `;
+
+    } catch(e) {
+        toast(e.message,true);
+    }
+}
+
+// RENDER PAGE
+
+function render() {
+
+    document.querySelectorAll('nav button').forEach(b=>{
+        b.setAttribute('aria-current',b.dataset.t==S.tab);
+    });
+
+    $('#v').innerHTML = {
+        home,
+        products,
+        create,
+        learn
+    }[S.tab]();
+
+    bind();
+
+    if(S.tab=='learn') lrn();
+}
+
+// EVENT HANDLERS
+
+function bind() {
+
+    document.querySelectorAll('nav button').forEach(b=>{
+        b.onclick = ()=>{
+            S.tab = b.dataset.t;
+            render();
+        };
+    });
+
+    const on = (s,fn)=>{
+        const e = $(s);
+        if(e) e.onclick = fn;
+    };
+
+    // CREATE OR UPDATE SHOP
+
+    if($('#vf')) {
+
+        $('#vf').onsubmit = async e=>{
+
+            e.preventDefault();
+
+            const f = e.target;
+            const btn = $('#saveShop');
+
+            const data = form(f);
+
+            data.shop_name = data.shop_name.trim();
+            data.business_type = data.business_type.trim();
+            data.opening_hours = data.opening_hours.trim();
+            data.service_area = (data.service_area || '').trim();
+
+            if(
+                !data.shop_name ||
+                !data.business_type ||
+                !data.opening_hours
+            ) {
+                toast('Please fill in all required fields.',true);
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+
+                const saved = await api('/vendor',{
+                    method:'PUT',
+                    body:data
+                });
+
+                S.vendor = saved;
+                S.editV = false;
+                S.tab = 'home';
+
+                render();
+
+                toast('Your shop has been saved successfully!');
+
+            } catch(err) {
+
+                toast(err.message,true);
+
+                btn.disabled = false;
+                btn.textContent = 'Save shop';
+
+            }
+        };
+    }
+
+    // EDIT SHOP
+
+    on('#ev',()=>{
+        S.editV = true;
+        render();
+        scrollTo(0,0);
+    });
+
+    // SAVE PRODUCT
+
+    if($('#pf')) {
+
+        $('#pf').onsubmit = e=>{
+
+            e.preventDefault();
+
+            const b = form(e.target);
+            b.price = parseFloat(b.price);
+
+            act(async()=>{
+
+                await api(
+                    '/products'+(S.editP ? '/'+S.editP : ''),
+                    {
+                        method:S.editP ? 'PUT' : 'POST',
+                        body:b
+                    }
+                );
+
+                S.editP = null;
+
+            },'Product saved');
+        };
+    }
+
+    // CANCEL PRODUCT EDIT
+
+    on('#cx',()=>{
+        S.editP = null;
+        render();
+    });
+
+    // EDIT PRODUCT
+
+    document.querySelectorAll('[data-ep]').forEach(b=>{
+        b.onclick = ()=>{
+            S.editP = b.dataset.ep;
+            render();
+            scrollTo(0,0);
+        };
+    });
+
+    // DELETE PRODUCT
+
+    document.querySelectorAll('[data-dp]').forEach(b=>{
+        b.onclick = ()=>{
+
+            if(confirm('Delete this product?')) {
+
+                act(
+                    ()=>api('/products/'+b.dataset.dp,{
+                        method:'DELETE'
+                    }),
+                    'Product deleted'
+                );
+
+            }
+        };
+    });
+
+    // GENERATE AI CONTENT
+
+    if($('#gf')) {
+
+        $('#gf').onsubmit = async e=>{
+
+            e.preventDefault();
+
+            const b = form(e.target);
+
+            b.product_id = b.product_id ? +b.product_id : null;
+            b.festival = b.festival || null;
+
+            const btn = $('#gb');
+
+            btn.disabled = true;
+            btn.textContent = 'Writing...';
+
+            try {
+
+                S.gen = await api('/generate',{
+                    method:'POST',
+                    body:b
+                });
+
+                await load();
+
+            } catch(x) {
+
+                toast(x.message,true);
+
+                btn.disabled = false;
+                btn.textContent = 'Write it for me';
+
+            }
+        };
+    }
+
+    // APPROVE AND SAVE AI CONTENT
+
+    on('#gs',()=>{
+
+        act(async()=>{
+
+            await api('/campaigns/'+S.gen.id,{
+                method:'PATCH',
+                body:{
+                    text:$('#gt').value,
+                    status:'approved'
+                }
+            });
+
+            S.gen = null;
+            S.tab = 'home';
+
+        },'Message saved successfully');
+    });
+
+    // CAMPAIGN HELPERS
+
+    const cm = id=>S.camps.find(c=>c.id==id);
+
+    // APPROVE CAMPAIGN
+
+    document.querySelectorAll('[data-ap]').forEach(b=>{
+        b.onclick = ()=>{
+
+            act(
+                ()=>api('/campaigns/'+b.dataset.ap,{
+                    method:'PATCH',
+                    body:{status:'approved'}
+                }),
+                'Message approved'
+            );
+
+        };
+    });
+
+    // DELETE CAMPAIGN
+
+    document.querySelectorAll('[data-dc]').forEach(b=>{
+        b.onclick = ()=>{
+
+            if(confirm('Delete this message?')) {
+
+                act(
+                    ()=>api('/campaigns/'+b.dataset.dc,{
+                        method:'DELETE'
+                    }),
+                    'Message deleted'
+                );
+
+            }
+        };
+    });
+
+    // COPY CAMPAIGN
+
+    document.querySelectorAll('[data-cp]').forEach(b=>{
+
+        b.onclick = ()=>{
+
+            const c = cm(b.dataset.cp);
+
+            if(!c) return;
+
+            navigator.clipboard.writeText(c.text)
+                .then(()=>toast('Copied successfully'))
+                .catch(()=>toast('Could not copy message',true));
+
+        };
+    });
+
+    // DOWNLOAD CAMPAIGN
+
+    document.querySelectorAll('[data-dl]').forEach(b=>{
+
+        b.onclick = ()=>{
+
+            const c = cm(b.dataset.dl);
+
+            if(!c) return;
+
+            const a = document.createElement('a');
+
+            a.href = URL.createObjectURL(
+                new Blob(
+                    [c.text],
+                    {type:'text/plain;charset=utf-8'}
+                )
+            );
+
+            a.download = 'message.txt';
+            a.click();
+
+            URL.revokeObjectURL(a.href);
+        };
+    });
+
+}
+
+// INITIAL LOAD
+
+load().catch(e=>{
+
+    console.error('Application loading error:',e);
+
+    $('#v').innerHTML = `
+        <div class="card">
+            <h2>Cannot reach the server</h2>
+
+            <p>
+                The application could not connect to the backend.
+                Please check your deployment and refresh the page.
+            </p>
+
+            <button class="go" onclick="location.reload()">
+                Retry
+            </button>
+        </div>
+    `;
+
+});
+
+</script>
+
+</body>
+</html>
