@@ -95,3 +95,23 @@ def test_schemes_have_official_links_and_upi_safety(c):
 def test_index_served(c):
     r = c.get("/")
     assert r.status_code == 200 and "DukaanSaathi" in r.text
+
+
+def test_festival_message_is_festival_specific(c):
+    r = gen(c, task="festival_offer", language="en", festival="Diwali").json()["text"]
+    assert "Happy Diwali" in r and "Raju Chai" in r and "Chai" in r and "₹10/cup" in r
+    hi = gen(c, task="festival_offer", language="hi", festival="Diwali").json()["text"]
+    assert "दीपावली" in hi
+    mr = gen(c, task="festival_offer", language="mr", festival="Ganesh Chaturthi").json()["text"]
+    assert "गणेश चतुर्थी" in mr
+    assert "Onam" in gen(c, task="festival_offer", festival="Onam").json()["text"]
+
+
+def test_festival_name_required(c):
+    assert gen(c, task="festival_offer", festival=None).status_code == 422
+    assert gen(c, task="festival_offer", festival="  ").status_code == 422
+
+
+def test_product_description_uses_product_facts(c):
+    r = gen(c, task="product_description", product={"name": "Masala Chai", "price": 10, "unit": "cup", "description": "Made with ginger"}).json()["text"]
+    assert "Masala Chai" in r and "₹10 per cup" in r and "7 AM - 9 PM" in r and "Made with ginger." in r

@@ -672,6 +672,10 @@ function bind() {
             keep();
             const f = S.form;
 
+            if (f.task === 'festival_offer' && !(f.festival || '').trim()) {
+                return toast('Type the festival name first (Diwali, Eid, Ganesh Chaturthi...).', true);
+            }
+
             let product = null;
             if (PRODUCT_TASKS.includes(f.task)) {
                 const p = S.products.find(x => x.id == f.product_id);

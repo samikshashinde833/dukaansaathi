@@ -91,6 +91,9 @@ def generate(g: GenIn):
             raise HTTPException(422, "Choose a product first.")
         p = g.product.model_dump()
 
+    if g.task == "festival_offer" and not (g.festival or "").strip():
+        raise HTTPException(422, "Type the festival name first (for example Diwali, Eid, Ganesh Chaturthi).")
+
     if granite.is_demo():
         text, src = C.demo_text(g.task, g.language, v, p, g.festival), "demo-template"
     else:
