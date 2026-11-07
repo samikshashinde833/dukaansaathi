@@ -1,20 +1,27 @@
 {
   "name": "DukaanSaathi AI",
-  "description": "Street Vendor Digitalization Agent: shop profile, product catalogue and marketing content for Indian street vendors, written with IBM Granite and approved by the vendor.",
+  "description": "Street Vendor Digitalization Agent: shop profile, product catalogue and marketing content for Indian street vendors, written with IBM Granite (or a labelled demo template) and approved by the vendor.",
   "problem_statement": { "program": "IBM SkillsBuild AICTE-2026", "id": 29, "title": "Street Vendor Digitalization Agent" },
-  "version": "0.1.0",
+  "version": "0.2.0",
   "note": "Project descriptor for this FastAPI app. It is not a LangFlow export.",
   "stack": {
-    "backend": "Python FastAPI",
-    "frontend": "HTML, CSS, JavaScript (mobile-first)",
-    "database": "SQLite",
-    "ai": "IBM Granite via IBM watsonx.ai (IBM Cloud Lite)"
+    "backend": "Python FastAPI (stateless, no database)",
+    "frontend": "HTML, CSS, JavaScript (mobile-first, single page)",
+    "storage": "Browser localStorage (key: dukaansaathi.v1)",
+    "ai": "IBM Granite via IBM watsonx.ai (IBM Cloud Lite), optional",
+    "hosting": "Vercel (serverless Python)"
   },
   "run": {
     "install": "pip install -r requirements.txt",
     "start": "uvicorn app.main:app --reload",
     "test": "python -m pytest -q",
     "url": "http://127.0.0.1:8000"
+  },
+  "deploy": {
+    "platform": "Vercel",
+    "entrypoint": "index.py",
+    "config": "vercel.json",
+    "live_url": "https://your-app-name.vercel.app"
   },
   "ibm": {
     "auth_url": "https://iam.cloud.ibm.com/identity/token",
@@ -23,51 +30,46 @@
     "status": "Live call not yet verified with real credentials; confirm model and Lite quota in your IBM Cloud account."
   },
   "environment_variables": {
-    "IBM_API_KEY": "placeholder, set in .env (never commit)",
-    "IBM_PROJECT_ID": "placeholder, set in .env",
+    "IBM_API_KEY": "placeholder, set in .env or Vercel settings (never commit)",
+    "IBM_PROJECT_ID": "placeholder, set in .env or Vercel settings",
     "IBM_REGION_URL": "https://us-south.ml.cloud.ibm.com",
     "IBM_MODEL_ID": "ibm/granite-4-h-small",
     "IBM_API_VERSION": "2025-10-25",
-    "DEMO_MODE": "true | false",
-    "DB_PATH": "dukaan.db"
+    "DEMO_MODE": "true | false"
   },
   "modes": {
     "ibm-granite": "Used when IBM_API_KEY and IBM_PROJECT_ID are set and DEMO_MODE is not true. A failed IBM call returns HTTP 502; there is no silent fallback.",
-    "demo": "Labelled template text, not AI output."
+    "demo": "Labelled template text, not AI output. Used when IBM keys are missing or DEMO_MODE is true."
   },
   "languages": ["en", "hi", "mr"],
   "content_tasks": ["product_description", "whatsapp_promo", "festival_offer", "social_caption", "marketing_tips"],
+  "data": {
+    "where": "Shop profile, products and saved messages are stored in the vendor's browser (localStorage). The server stores nothing.",
+    "backup": "Download backup / Restore backup buttons on the My shop page (JSON file).",
+    "reason": "Vercel serverless functions have no persistent disk, so a server-side SQLite file is lost between requests."
+  },
   "workflow": [
-    "Vendor request (task, product, festival, language)",
-    "Validate input",
-    "Load shop and product context from SQLite",
-    "Build prompt and call IBM Granite (or labelled demo template)",
-    "Validate output (length, markup, risky claims, PIN/OTP requests)",
-    "Save as draft; vendor edits and approves"
+    "Vendor picks a task, product, festival and language",
+    "Browser checks the input and sends shop and product details to the API",
+    "API validates input and builds the prompt",
+    "IBM Granite writes the text (or a labelled demo template is used)",
+    "API validates output (length, markup, risky claims, PIN/OTP requests)",
+    "Browser shows it as a draft; vendor edits and approves; it is saved in localStorage"
   ],
   "api": [
-    { "method": "GET", "path": "/api/status" },
-    { "method": "GET", "path": "/api/vendor" },
-    { "method": "PUT", "path": "/api/vendor" },
-    { "method": "GET", "path": "/api/products" },
-    { "method": "POST", "path": "/api/products" },
-    { "method": "PUT", "path": "/api/products/{id}" },
-    { "method": "DELETE", "path": "/api/products/{id}" },
-    { "method": "POST", "path": "/api/generate" },
-    { "method": "GET", "path": "/api/campaigns" },
-    { "method": "PATCH", "path": "/api/campaigns/{id}" },
-    { "method": "DELETE", "path": "/api/campaigns/{id}" },
-    { "method": "GET", "path": "/api/schemes" },
-    { "method": "GET", "path": "/api/upi-guide" },
-    { "method": "POST", "path": "/api/demo/seed" },
-    { "method": "GET", "path": "/api/profile/download" }
+    { "method": "GET", "path": "/api/status", "purpose": "Current mode (demo or ibm-granite)" },
+    { "method": "POST", "path": "/api/generate", "purpose": "Write a message from the shop and product sent in the request body" },
+    { "method": "POST", "path": "/api/validate", "purpose": "Check a message for markup and risky claims" },
+    { "method": "GET", "path": "/api/schemes", "purpose": "Government scheme names and official links" },
+    { "method": "GET", "path": "/api/upi-guide", "purpose": "Steps and safety notes for receiving UPI payments" }
   ],
   "safeguards": [
     "Vendor approves every draft; nothing is sent, paid for or submitted automatically",
     "Never asks for UPI PIN, OTP or passwords",
     "Scheme information lists official links only",
-    "Generated text labelled as an AI suggestion, not a guarantee",
+    "Generated text is labelled as an AI suggestion, not a guarantee",
+    "Input and output checked for markup (< >) and risky claims",
     "API keys stay in server environment variables"
   ],
-  "limitations": "Single vendor, no login, SQLite prototype. Add authentication and a managed database before real use."
+  "limitations": "Single vendor per browser, no login. Data is not shared between devices (use backup and restore). Add authentication and a managed database before real use."
 }
